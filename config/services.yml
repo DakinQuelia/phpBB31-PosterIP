@@ -1,0 +1,11 @@
+services:     
+    dakinquelia.posterip.listener:
+        class: dakinquelia\posterip\event\listener
+        arguments:
+            - @dbal.conn
+            - @auth
+            - @user
+            - %core.root_path%
+            - %core.php_ext%
+        tags:
+            - { name: event.listener }
