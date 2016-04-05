@@ -43,17 +43,20 @@ class listener implements EventSubscriberInterface
     
     public function display_posterip_viewtopic($event)
     {		
-		$row = $event['row'];
-		$sql = 'SELECT poster_ip FROM ' . POSTS_TABLE . '
-				WHERE post_id = ' . (int) $row['post_id'];
-		$result = $this->db->sql_query($sql);
-		$poster_ip = $this->db->sql_fetchfield('poster_ip');
-		$this->db->sql_freeresult($result);
-		
-		$event['post_row'] = array_merge($event['post_row'], array(
-			'POSTER_IP' 		=> $poster_ip,
-			'POSTER_IP_VISIBLE' => ($this->auth->acl_get('a_') || $this->auth->acl_get('m_')) ? true : false,
-			'POSTER_IP_WHOIS'	=> "http://en.utrace.de/?query=" . $poster_ip,
-		));
+	if ($this->auth->acl_get('a_') || $this->auth->acl_get('m_')) {
+	    $row = $event['row'];
+	    $sql = 'SELECT poster_ip FROM ' . POSTS_TABLE . '
+		WHERE post_id = ' . (int) $row['post_id'];
+	    $result = $this->db->sql_query($sql);
+	    $poster_ip = $this->db->sql_fetchfield('poster_ip');
+	    $this->db->sql_freeresult($result);
+	    $event['post_row'] = array_merge($event['post_row'], array(
+		'POSTER_IP' 		=> $poster_ip,
+		'POSTER_IP_VISIBLE' => true,
+		'POSTER_IP_WHOIS'	=> "http://www.utrace.de/?query=" . $poster_ip,
+	    ));
+	}
     }
+
+
 }
