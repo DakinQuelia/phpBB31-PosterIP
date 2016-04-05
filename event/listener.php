@@ -16,44 +16,53 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 */
 class listener implements EventSubscriberInterface
 {
-	protected $auth;
-	protected $user;
-	protected $db;
-	protected $phpbb_root_path;
-	protected $php_ext;
-	
-	static public function getSubscribedEvents()
+    protected $auth;
+    protected $user;
+    protected $db;
+    protected $phpbb_root_path;
+    protected $php_ext;
+
+    static public function getSubscribedEvents()
     {
         return array(
-            'core.viewtopic_modify_post_row'				=> 'display_posterip_viewtopic',
+	    'core.viewtopic_post_rowset_data'		=> 'add_posterip_in_rowset',
+            'core.viewtopic_modify_post_row'		=> 'display_posterip_viewtopic',
         );
     }
-	
-	/**
-	* Instead of using "global $user;" in the function, we use dependencies again.
-	*/
-	public function __construct(\phpbb\db\driver\driver_interface $db, \phpbb\auth\auth $auth, \phpbb\user $user, $phpbb_root_path, $php_ext)
-	{
-		$this->db = $db;
-		$this->auth = $auth;
-		$this->user = $user;
-		$this->root_path = $phpbb_root_path;
-		$this->php_ext = $php_ext;
-	}
-    
+
+    /**
+    * Instead of using "global $user;" in the function, we use dependencies again.
+    */
+    public function __construct(\phpbb\db\driver\driver_interface $db, \phpbb\auth\auth $auth, \phpbb\user $user, $phpbb_root_path, $php_ext)
+    {
+	$this->db = $db;
+	$this->auth = $auth;
+	$this->user = $user;
+	$this->root_path = $phpbb_root_path;
+	$this->php_ext = $php_ext;
+    }
+
+    public function add_posterip_in_rowset($event)
+    {
+	$rowset = $event['rowset_data'];
+	$row = $event['row'];
+
+	$rowset['poster_ip'] = $row['poster_ip'];
+
+	$event['rowset_data'] = $rowset;
+    }
+
     public function display_posterip_viewtopic($event)
-    {		
-		$row = $event['row'];
-		$sql = 'SELECT poster_ip FROM ' . POSTS_TABLE . '
-				WHERE post_id = ' . (int) $row['post_id'];
-		$result = $this->db->sql_query($sql);
-		$poster_ip = $this->db->sql_fetchfield('poster_ip');
-		$this->db->sql_freeresult($result);
-		
-		$event['post_row'] = array_merge($event['post_row'], array(
-			'POSTER_IP' 		=> $poster_ip,
-			'POSTER_IP_VISIBLE' => ($this->auth->acl_get('a_') || $this->auth->acl_get('m_')) ? true : false,
-			'POSTER_IP_WHOIS'	=> "http://en.utrace.de/?query=" . $poster_ip,
-		));
+    {
+	$poster_ip = $event['row']['poster_ip'];
+
+	if ($this->auth->acl_gets('a_', 'm_') && !empty($poster_ip))
+	{
+	    $event['post_row'] = array_merge($event['post_row'], array(
+		'POSTER_IP_VISIBLE' => true,
+		'POSTER_IP' 		=> $poster_ip,
+		'POSTER_IP_WHOIS'	=> "http://en.utrace.de/?query=" . $poster_ip,
+	    ));
+	}
     }
 }
